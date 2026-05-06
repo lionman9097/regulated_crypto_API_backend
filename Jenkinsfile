@@ -12,7 +12,7 @@ standardDockerPipeline([
     prod: [
         branch: 'prod',
         artifact: [
-            imageName: 'regulated_crypto_API-backend',
+            imageName: 'regulated_crypto_api-backend',
             registryProject: 'robot-crypto',
             registryDomain: 'ehc-staging:5000',
             credDockerUser: 'dockerId',
@@ -28,10 +28,10 @@ standardDockerPipeline([
         ],
         deployment: [
             serverName: 'Production Server',
-            containerName: 'regulated_crypto_API-backend-production',
+            containerName: 'regulated_crypto_api-backend-production',
             port: '3989',
             containerPort: '8000',
-            network: 'regulated_crypto_API-backend-production-network',
+            network: 'regulated_crypto_api-backend-production-network',
             networkBindIP: '172.10.10.227',
             credServ: 'servProd',
             credSshKey: 'sshKey',
