@@ -1,23 +1,22 @@
 import asyncio
 from decimal import Decimal
 
-from binance.spot import Spot
+from binance.um_futures import UMFutures
 
 from core.config import settings
 
 
 class BinanceService:
     def __init__(self) -> None:
-        self._base_url = settings.binance_spot_base_url if settings.binance_use_testnet else "https://api.binance.com"
-        self._client = Spot(
-            api_key=settings.binance_api_key or None,
-            api_secret=settings.binance_api_secret or None,
-            base_url=self._base_url,
+        self._client = UMFutures(
+            key=settings.binance_api_key or None,
+            secret=settings.binance_api_secret or None,
+            base_url=settings.binance_base_url,
         )
 
     @property
     def enabled(self) -> bool:
-        return settings.exchange_mode == "binance_testnet"
+        return settings.exchange_mode == "binance_demo"
 
     @property
     def has_credentials(self) -> bool:

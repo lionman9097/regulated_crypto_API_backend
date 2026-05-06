@@ -20,9 +20,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
 
-    exchange_mode: str = "binance_testnet"
-    binance_use_testnet: bool = True
-    binance_spot_base_url: str = "https://testnet.binance.vision"
+    exchange_mode: str = "binance_demo"
+    binance_base_url: str = "https://demo-fapi.binance.com"
     binance_api_key: str = ""
     binance_api_secret: str = ""
 
