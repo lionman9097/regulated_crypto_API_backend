@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: crypto-poc-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/crypto_poc
+      REDIS_URL: redis://redis:6379/0
+      API_KEYS: beginner-key,intermediate-key,advanced-key
+      RATE_LIMIT_PER_MINUTE: 100
+      JWT_SECRET_KEY: change-me-poc-secret
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      EXCHANGE_MODE: binance_testnet
+      BINANCE_USE_TESTNET: true
+      BINANCE_SPOT_BASE_URL: https://testnet.binance.vision
+      BINANCE_API_KEY: ${BINANCE_API_KEY:-}
+      BINANCE_API_SECRET: ${BINANCE_API_SECRET:-}
+      GLOBAL_EXPOSURE_THRESHOLD: 10000000
+      LIQUIDATION_THRESHOLD: 0.25
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8000:8000"
+
+  postgres:
+    image: postgres:16
+    container_name: crypto-poc-postgres
+    environment:
+      POSTGRES_DB: crypto_poc
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: crypto-poc-redis
+    ports:
+      - "6379:6379"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: crypto-poc-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

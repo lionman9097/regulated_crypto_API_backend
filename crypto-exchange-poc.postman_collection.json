@@ -1,0 +1,420 @@
+{
+  "info": {
+    "name": "Crypto Exchange POC - Full Smoke Tests",
+    "description": "End-to-end Postman collection for JWT auth, Binance-testnet-backed market/order flow, account, KPI, metrics, and rate-limit checks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 - Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "01 - Auth",
+      "item": [
+        {
+          "name": "Issue JWT Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"api_key\": \"{{api_key}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/token",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "token"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var data = pm.response.json();",
+                  "pm.test('Token exists', function () {",
+                  "  pm.expect(data.access_token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('access_token', data.access_token);",
+                  "if (data.expires_in) { pm.collectionVariables.set('expires_in', String(data.expires_in)); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "KPI System Without Token (Expect 401)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/kpi/system",
+              "host": ["{{base_url}}"],
+              "path": ["kpi", "system"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Market",
+      "item": [
+        {
+          "name": "Get BTCUSDT Price",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/market/price/{{symbol}}",
+              "host": ["{{base_url}}"],
+              "path": ["market", "price", "{{symbol}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data.price) { pm.collectionVariables.set('last_price', String(data.price)); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Tick Market",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/market/tick",
+              "host": ["{{base_url}}"],
+              "path": ["market", "tick"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Orders",
+      "item": [
+        {
+          "name": "Create Buy Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": {{user_id}},\n  \"symbol\": \"{{symbol}}\",\n  \"side\": \"buy\",\n  \"size\": {{order_size}},\n  \"leverage\": {{leverage}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 400', function () {",
+                  "  pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  var data = pm.response.json();",
+                  "  if (data.order && data.order.order_id) {",
+                  "    pm.collectionVariables.set('order_id', String(data.order.order_id));",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Cancel Order (if open)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/{{order_id}}/cancel?user_id={{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "{{order_id}}", "cancel"],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "{{user_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Account",
+      "item": [
+        {
+          "name": "Get Account Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/account/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["account", "{{user_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - KPI",
+      "item": [
+        {
+          "name": "KPI System",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/kpi/system",
+              "host": ["{{base_url}}"],
+              "path": ["kpi", "system"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "KPI Trading",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/kpi/trading",
+              "host": ["{{base_url}}"],
+              "path": ["kpi", "trading"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "KPI Security",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/kpi/security",
+              "host": ["{{base_url}}"],
+              "path": ["kpi", "security"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 - Metrics",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/metrics",
+          "host": ["{{base_url}}"],
+          "path": ["metrics"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains expected metric', function () {",
+              "  pm.expect(pm.response.text()).to.include('api_requests_total');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "07 - Rate Limit Probe (Run in Collection Runner x120)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/kpi/system",
+          "host": ["{{base_url}}"],
+          "path": ["kpi", "system"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Response is 200 or 429', function () {",
+              "  pm.expect([200, 429]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "api_key",
+      "value": "beginner-key"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "expires_in",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": "1"
+    },
+    {
+      "key": "symbol",
+      "value": "BTCUSDT"
+    },
+    {
+      "key": "order_size",
+      "value": "0.001"
+    },
+    {
+      "key": "leverage",
+      "value": "5"
+    },
+    {
+      "key": "order_id",
+      "value": "1"
+    },
+    {
+      "key": "last_price",
+      "value": ""
+    }
+  ]
+}
