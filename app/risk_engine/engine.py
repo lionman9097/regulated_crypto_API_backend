@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import settings
 from metrics.prometheus import increment_liquidation_events
 from models.account import Account, Position
-from models.user import User
 from risk_engine.leverage import get_max_leverage
 from risk_engine.margin import required_margin
 
@@ -14,7 +13,6 @@ from risk_engine.margin import required_margin
 class RiskEngine:
     async def evaluate_order(
         self,
-        user: User,
         account: Account,
         order_size: Decimal,
         price: Decimal,
@@ -25,7 +23,7 @@ class RiskEngine:
         if order_size <= 0:
             return {"approved": False, "reason": "Order size must be positive"}
 
-        max_leverage = get_max_leverage(user.tier)
+        max_leverage = get_max_leverage()
         leverage = requested_leverage or max_leverage
         leverage = min(leverage, max_leverage)
 

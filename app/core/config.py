@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/crypto_poc"
     redis_url: str = "redis://redis:6379/0"
 
-    api_keys: str = "beginner-key,intermediate-key,advanced-key"
+    api_keys: str = "local-dev-key"
     rate_limit_per_minute: int = 100
+    cors_allow_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     jwt_secret_key: str = "change-me-poc-secret"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
@@ -27,6 +28,7 @@ class Settings(BaseSettings):
 
     global_exposure_threshold: float = 10_000_000.0
     liquidation_threshold: float = 0.25
+    max_leverage: int = 20
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 

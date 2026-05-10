@@ -8,6 +8,9 @@ from metrics.prometheus import increment_auth_failure
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         if request.url.path in {"/metrics", "/docs", "/openapi.json", "/redoc", "/health", "/auth/token"}:
             return await call_next(request)
 

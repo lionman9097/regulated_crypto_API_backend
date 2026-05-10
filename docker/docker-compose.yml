@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   backend:
     build:
@@ -9,8 +7,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/crypto_poc
       REDIS_URL: redis://redis:6379/0
-      API_KEYS: beginner-key,intermediate-key,advanced-key
+      API_KEYS: local-dev-key
       RATE_LIMIT_PER_MINUTE: 100
+      CORS_ALLOW_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
       JWT_SECRET_KEY: change-me-poc-secret
       JWT_ALGORITHM: HS256
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 60
@@ -20,6 +19,7 @@ services:
       BINANCE_API_SECRET: ${BINANCE_API_SECRET:-}
       GLOBAL_EXPOSURE_THRESHOLD: 10000000
       LIQUIDATION_THRESHOLD: 0.25
+      MAX_LEVERAGE: 20
     depends_on:
       - postgres
       - redis

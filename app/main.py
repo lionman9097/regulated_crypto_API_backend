@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from decimal import Decimal
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import select
@@ -11,13 +12,11 @@ from api.routes.auth import router as auth_router
 from api.routes.kpi import router as kpi_router
 from api.routes.market import router as market_router
 from api.routes.order import router as order_router
-from core.config import AsyncSessionLocal, Base, engine
+from core.config import AsyncSessionLocal, Base, engine, settings
 from middleware.auth import AuthMiddleware
 from middleware.logging import LoggingMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from models.account import Account
-from models.order import Order
-from models.trade import Trade
 from models.user import User
 
 
@@ -27,18 +26,18 @@ async def seed_initial_data() -> None:
         if existing.scalar_one_or_none() is not None:
             return
 
+        raw_keys = [key.strip() for key in settings.api_keys.split(",") if key.strip()]
+        api_keys = raw_keys or ["local-dev-key"]
         users = [
-            User(username="beginner_user", api_key="beginner-key", tier="beginner"),
-            User(username="intermediate_user", api_key="intermediate-key", tier="intermediate"),
-            User(username="advanced_user", api_key="advanced-key", tier="advanced"),
+            User(username=f"user_{idx + 1}", api_key=api_key, tier="standard")
+            for idx, api_key in enumerate(api_keys)
         ]
         session.add_all(users)
         await session.flush()
 
         accounts = [
-            Account(user_id=users[0].id, balance=Decimal("10000"), margin_used=Decimal("0")),
-            Account(user_id=users[1].id, balance=Decimal("50000"), margin_used=Decimal("0")),
-            Account(user_id=users[2].id, balance=Decimal("100000"), margin_used=Decimal("0")),
+            Account(user_id=user.id, balance=Decimal("100000"), margin_used=Decimal("0"))
+            for user in users
         ]
         session.add_all(accounts)
         await session.commit()
@@ -57,6 +56,15 @@ app = FastAPI(
     description="Simulation backend for API governance, risk-based leverage control, and KPI observability.",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+cors_origins = [origin.strip() for origin in settings.cors_allow_origins.split(",") if origin.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins or ["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.add_middleware(AuthMiddleware)

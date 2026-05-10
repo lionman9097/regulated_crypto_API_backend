@@ -3,7 +3,7 @@
 Research-only simulation backend for a crypto exchange proof-of-concept, focused on:
 
 - API governance (auth, rate limiting, logging)
-- Risk-based leverage control (tiered leverage + margin + exposure + liquidation simulation)
+- Risk-based leverage control (max leverage cap + margin + exposure + liquidation simulation)
 - KPI observability (Prometheus metrics + KPI API)
 
 ## Tech Stack
@@ -96,14 +96,18 @@ docker compose up
 
 If credentials are not set, market endpoints still try Testnet public price calls, but order placement/cancel to Testnet will return an error.
 
+For browser-based frontends, configure allowed origins with `CORS_ALLOW_ORIGINS` (comma-separated), for example:
+
+```env
+CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
 ## API Governance
 
 ### Authentication
 
-- Issue JWT via `POST /auth/token` with API key payload:
-  - `beginner-key`
-  - `intermediate-key`
-  - `advanced-key`
+- Issue JWT via `POST /auth/token` with an API key configured by `API_KEYS`
+- Default local key: `local-dev-key`
 - Use JWT on protected endpoints:
   - `Authorization: Bearer <access_token>`
 
@@ -131,11 +135,9 @@ Each request logs:
 
 ## Risk Engine Logic
 
-### Tier leverage limits
+### Leverage limit
 
-- `beginner` → max `5x`
-- `intermediate` → max `10x`
-- `advanced` → max `20x`
+- Maximum leverage is configured by `MAX_LEVERAGE` (default: `20x`)
 
 ### Margin formula
 

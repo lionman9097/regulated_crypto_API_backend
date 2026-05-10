@@ -42,7 +42,6 @@ class OrderService:
         existing_global_exposure = await global_exposure(db)
 
         risk_result = await self.risk_engine.evaluate_order(
-            user=user,
             account=account,
             order_size=order_size,
             price=price,
