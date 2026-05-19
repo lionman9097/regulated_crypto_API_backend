@@ -2,17 +2,20 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 from jwt import InvalidTokenError
+from passlib.context import CryptContext
 
 from core.config import settings
 
 
-VALID_API_KEYS = {key.strip() for key in settings.api_keys.split(",") if key.strip()}
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
-def is_valid_api_key(api_key: str | None) -> bool:
-    if not api_key:
-        return False
-    return api_key in VALID_API_KEYS
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 def create_access_token(subject: str, expires_minutes: int | None = None, extra_claims: dict | None = None) -> str:

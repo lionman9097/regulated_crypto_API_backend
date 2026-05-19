@@ -11,23 +11,23 @@ class Settings(BaseSettings):
     app_name: str = "crypto-exchange-poc-backend"
     environment: str = "dev"
 
-    database_url: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/crypto_poc"
+    database_url: str = ""
     redis_url: str = "redis://redis:6379/0"
 
-    api_keys: str = "local-dev-key"
     rate_limit_per_minute: int = 100
     cors_allow_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     jwt_secret_key: str = "change-me-poc-secret"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
+    market_ws_interval_seconds: float = 2.0
+    kpi_ws_interval_seconds: float = 5.0
 
-    exchange_mode: str = "binance_demo"
     binance_base_url: str = "https://demo-fapi.binance.com"
+    binance_ws_base_url: str = "wss://demo-fstream.binance.com"
     binance_api_key: str = ""
     binance_api_secret: str = ""
 
     global_exposure_threshold: float = 10_000_000.0
-    liquidation_threshold: float = 0.25
     max_leverage: int = 20
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)

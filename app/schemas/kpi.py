@@ -10,7 +10,6 @@ class SystemKPIResponse(BaseModel):
 class TradingKPIResponse(BaseModel):
     total_orders: int
     total_trades: int
-    liquidation_events: int
     global_exposure: float
 
 

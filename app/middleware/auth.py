@@ -11,7 +11,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        if request.url.path in {"/metrics", "/docs", "/openapi.json", "/redoc", "/health", "/auth/token"}:
+        if request.url.path in {"/metrics", "/docs", "/openapi.json", "/redoc", "/health", "/auth/login"}:
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization", "")
@@ -31,5 +31,5 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return JSONResponse(status_code=401, content={"detail": "Invalid token"})
 
         request.state.jwt_payload = payload
-        request.state.user_id = payload.get("sub")
+        request.state.user_id = int(payload.get("sub"))
         return await call_next(request)

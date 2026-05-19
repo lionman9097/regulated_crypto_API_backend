@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import redis_client
-from models.account import Position
+from models.account import Account, Position
 from models.order import Order
 from models.trade import Trade
 from models.user import User
@@ -36,7 +36,12 @@ class OrderService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
         order_size = Decimal(str(payload.size))
-        price = Decimal(str(current_price))
+
+        # For limit orders use the submitted limit price; market orders use current price
+        if payload.order_type == "limit":
+            price = Decimal(str(payload.limit_price))
+        else:
+            price = Decimal(str(current_price))
 
         existing_user_exposure = await user_exposure(db, payload.user_id)
         existing_global_exposure = await global_exposure(db)
@@ -54,27 +59,27 @@ class OrderService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=risk_result["reason"])
 
         exchange_order_id: int | None = None
-        exchange_status = "FILLED"
-        if binance_service.enabled:
-            try:
-                exchange_order = await binance_service.create_market_order(
-                    symbol=payload.symbol,
-                    side=payload.side,
-                    quantity=order_size,
-                )
-                exchange_order_id = int(exchange_order.get("orderId")) if exchange_order.get("orderId") else None
-                exchange_status = str(exchange_order.get("status", "FILLED"))
-            except Exception as exc:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Binance testnet order failed: {str(exc)}",
-                ) from exc
+        try:
+            exchange_order = await binance_service.create_order(
+                symbol=payload.symbol,
+                side=payload.side,
+                order_type=payload.order_type,
+                quantity=order_size,
+                limit_price=Decimal(str(payload.limit_price)) if payload.limit_price else None,
+            )
+            exchange_order_id = int(exchange_order.get("orderId")) if exchange_order.get("orderId") else None
+            exchange_status = str(exchange_order.get("status", "NEW"))
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Binance order failed: {str(exc)}",
+            ) from exc
 
         order = Order(
             user_id=payload.user_id,
             symbol=payload.symbol,
             side=payload.side,
-            order_type="market",
+            order_type=payload.order_type,
             size=order_size,
             leverage=risk_result["leverage"],
             price=price,
@@ -131,7 +136,6 @@ class OrderService:
         )
         db.add(trade)
 
-        await self.risk_engine.simulate_liquidations(db, payload.user_id)
         await db.commit()
         await db.refresh(order)
 
@@ -141,6 +145,102 @@ class OrderService:
             "user_exposure_after": float(risk_result["user_exposure_after"]),
             "global_exposure_after": float(risk_result["global_exposure_after"]),
         }
+
+    async def close_position(
+        self, db: AsyncSession, user_id: int, symbol: str
+    ) -> dict:
+        symbol = symbol.upper()
+
+        position_stmt = select(Position).where(
+            Position.user_id == user_id,
+            Position.symbol == symbol,
+            Position.liquidated.is_(False),
+        )
+        position_result = await db.execute(position_stmt)
+        position = position_result.scalar_one_or_none()
+
+        if not position:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No open position for {symbol}",
+            )
+
+        quantity = abs(Decimal(str(position.quantity)))
+        # Long positions have positive quantity — close with SELL; short with BUY
+        open_side = "BUY" if Decimal(str(position.quantity)) > 0 else "SELL"
+        close_side = "SELL" if open_side == "BUY" else "BUY"
+
+        close_price = Decimal(str(await market_service.get_price(symbol)))
+
+        try:
+            await binance_service.close_position(
+                symbol=symbol,
+                side=open_side,
+                quantity=quantity,
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Binance close position failed: {str(exc)}",
+            ) from exc
+
+        account_stmt = select(Account).where(Account.id == position.account_id)
+        account_result = await db.execute(account_stmt)
+        account = account_result.scalar_one_or_none()
+        if account:
+            account.margin_used = max(
+                Decimal(str(account.margin_used)) - Decimal(str(position.margin)),
+                Decimal("0"),
+            )
+
+        position.liquidated = True
+
+        close_order = Order(
+            user_id=user_id,
+            symbol=symbol,
+            side=close_side.lower(),
+            order_type="market",
+            size=quantity,
+            leverage=1,
+            price=close_price,
+            status="FILLED",
+        )
+        db.add(close_order)
+        await db.flush()  # populate close_order.id
+
+        trade = Trade(
+            user_id=user_id,
+            order_id=close_order.id,
+            symbol=symbol,
+            side=close_side.lower(),
+            size=quantity,
+            price=close_price,
+            notional=quantity * close_price,
+        )
+        db.add(trade)
+
+        await db.commit()
+
+        return {
+            "symbol": symbol,
+            "side": close_side.lower(),
+            "quantity": float(quantity),
+            "price": float(close_price),
+            "detail": "Position closed",
+        }
+
+    async def get_open_orders(self, db: AsyncSession, user_id: int) -> list[Order]:
+        stmt = select(Order).where(
+            Order.user_id == user_id,
+            Order.status.not_in(["FILLED", "CANCELED"]),
+        )
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_order_history(self, db: AsyncSession, user_id: int) -> list[Order]:
+        stmt = select(Order).where(Order.user_id == user_id).order_by(Order.created_at.desc())
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
 
     async def cancel_order(self, db: AsyncSession, order_id: int, user_id: int) -> Order:
         stmt = select(Order).where(Order.id == order_id, Order.user_id == user_id)
@@ -156,13 +256,13 @@ class OrderService:
             )
 
         exchange_order_id = await redis_client.get(f"exchange_order:{order.id}")
-        if binance_service.enabled and exchange_order_id:
+        if exchange_order_id:
             try:
                 await binance_service.cancel_order(symbol=order.symbol, exchange_order_id=int(exchange_order_id))
             except Exception as exc:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Binance testnet cancel failed: {str(exc)}",
+                    detail=f"Binance cancel failed: {str(exc)}",
                 ) from exc
 
         order.status = "CANCELED"

@@ -106,14 +106,17 @@ CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 ### Authentication
 
-- Issue JWT via `POST /auth/token` with an API key configured by `API_KEYS`
-- Default local key: `local-dev-key`
+- Login via `POST /auth/login` with username and password
+- Default demo credentials:
+  - Username: `trader_1`, Password: `password123`
+  - Username: `trader_2`, Password: `password456`
+  - Username: `trader_3`, Password: `password789`
 - Use JWT on protected endpoints:
   - `Authorization: Bearer <access_token>`
 
 ### Rate limiting
 
-- Redis-backed limit: `100 requests/minute` per API key
+- Redis-backed limit: `100 requests/minute` per user/IP window
 - Returns `429` when exceeded
 
 ### Logging
@@ -126,12 +129,14 @@ Each request logs:
 
 ## Core Endpoints
 
-- `POST /auth/token` issue JWT access token
+- `POST /auth/login` issue JWT access token
 - `POST /orders` create and execute order (risk checks + Binance Testnet order placement)
 - `POST /orders/{order_id}/cancel?user_id=...` cancel order (if not yet filled)
 - `GET /account/{user_id}` account + margin + positions
 - `GET /market/price/{symbol}` current Binance Testnet price (fallback to local simulation)
 - `POST /market/tick` refresh market prices from Binance Testnet (fallback to local simulation)
+- `WS /market/stream?token=<jwt>` real-time market snapshots
+- `WS /kpi/stream?token=<jwt>` real-time KPI snapshots
 
 ## Risk Engine Logic
 

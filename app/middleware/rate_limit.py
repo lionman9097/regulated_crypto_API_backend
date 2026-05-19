@@ -18,7 +18,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         principal = getattr(request.state, "user_id", None)
-        if request.url.path == "/auth/token":
+        if request.url.path == "/auth/login":
             principal = request.client.host if request.client else "anon"
         elif not principal:
             auth_header = request.headers.get("Authorization", "")

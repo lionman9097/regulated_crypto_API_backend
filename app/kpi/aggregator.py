@@ -12,7 +12,7 @@ from models.trade import Trade
 class KPIAggregator:
     def system_kpi(self) -> dict:
         snapshot = kpi_collector.collect()
-        uptime = 100.0 if snapshot["uptime_seconds"] > 0 else 0.0
+        uptime = round((1.0 - snapshot["error_rate"]) * 100, 4)
         return {
             "latency_ms": snapshot["avg_latency_ms"],
             "error_rate": snapshot["error_rate"],
@@ -26,12 +26,9 @@ class KPIAggregator:
             select(func.coalesce(func.sum(Position.notional), 0)).where(Position.liquidated.is_(False))
         )
 
-        snapshot = kpi_collector.collect()
-
         return {
             "total_orders": int(order_count_result.scalar_one() or 0),
             "total_trades": int(trade_count_result.scalar_one() or 0),
-            "liquidation_events": int(snapshot["liquidation_events_total"]),
             "global_exposure": float(Decimal(global_exposure_result.scalar_one() or 0)),
         }
 

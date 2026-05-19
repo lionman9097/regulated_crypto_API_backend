@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class OrderCreate(BaseModel):
@@ -10,6 +10,14 @@ class OrderCreate(BaseModel):
     side: Literal["buy", "sell"]
     size: float = Field(..., gt=0)
     leverage: int | None = Field(default=None, ge=1)
+    order_type: Literal["market", "limit"] = "market"
+    limit_price: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def validate_limit_price(self) -> "OrderCreate":
+        if self.order_type == "limit" and self.limit_price is None:
+            raise ValueError("limit_price is required for limit orders")
+        return self
 
 
 class OrderResponse(BaseModel):
@@ -17,6 +25,7 @@ class OrderResponse(BaseModel):
     user_id: int
     symbol: str
     side: str
+    order_type: str
     size: float
     leverage: int
     price: float
@@ -34,4 +43,12 @@ class OrderExecutionResult(BaseModel):
 class OrderCancelResponse(BaseModel):
     order_id: int
     status: str
+    detail: str
+
+
+class ClosePositionResponse(BaseModel):
+    symbol: str
+    side: str
+    quantity: float
+    price: float
     detail: str

@@ -22,11 +22,6 @@ api_requests_total = Counter(
     ["method", "endpoint", "status_code"],
 )
 
-liquidation_events_total = Counter(
-    "liquidation_events_total",
-    "Total liquidation events",
-)
-
 auth_failures_total = Counter(
     "auth_failures_total",
     "Total authentication failures",
@@ -35,6 +30,11 @@ auth_failures_total = Counter(
 rate_limit_hits_total = Counter(
     "rate_limit_hits_total",
     "Total rate limit violations",
+)
+
+liquidation_events_total = Counter(
+    "liquidation_events_total",
+    "Total liquidation events received from Binance",
 )
 
 _START_TIME = time.time()
@@ -46,7 +46,6 @@ _TOTAL_LATENCY_SECONDS = 0.0
 _TOTAL_LATENCY_COUNT = 0
 _TOTAL_AUTH_FAILURES = 0
 _TOTAL_RATE_LIMIT_HITS = 0
-_TOTAL_LIQUIDATIONS = 0
 
 
 def record_api_request(method: str, endpoint: str, status_code: int, latency_seconds: float) -> None:
@@ -80,11 +79,14 @@ def increment_rate_limit_hit() -> None:
         _TOTAL_RATE_LIMIT_HITS += 1
 
 
-def increment_liquidation_events(count: int = 1) -> None:
+_TOTAL_LIQUIDATIONS = 0
+
+
+def increment_liquidation_event() -> None:
     global _TOTAL_LIQUIDATIONS
-    liquidation_events_total.inc(count)
+    liquidation_events_total.inc()
     with _LOCK:
-        _TOTAL_LIQUIDATIONS += count
+        _TOTAL_LIQUIDATIONS += 1
 
 
 def get_metrics_snapshot() -> dict:
@@ -100,5 +102,4 @@ def get_metrics_snapshot() -> dict:
             "uptime_seconds": int(uptime_seconds),
             "auth_failures_total": _TOTAL_AUTH_FAILURES,
             "rate_limit_hits_total": _TOTAL_RATE_LIMIT_HITS,
-            "liquidation_events_total": _TOTAL_LIQUIDATIONS,
         }

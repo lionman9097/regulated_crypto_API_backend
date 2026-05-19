@@ -11,3 +11,14 @@ class PriceResponse(BaseModel):
 
 class MarketSnapshot(BaseModel):
     prices: list[PriceResponse]
+
+
+class CandleData(BaseModel):
+    symbol: str
+    interval: str
+    open_time: int
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float

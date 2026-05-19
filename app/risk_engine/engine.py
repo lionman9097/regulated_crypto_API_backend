@@ -1,11 +1,7 @@
 from decimal import Decimal
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from core.config import settings
-from metrics.prometheus import increment_liquidation_events
-from models.account import Account, Position
+from models.account import Account
 from risk_engine.leverage import get_max_leverage
 from risk_engine.margin import required_margin
 
@@ -56,38 +52,4 @@ class RiskEngine:
             "global_exposure_after": current_global_exposure + order_notional,
         }
 
-    async def simulate_liquidations(self, db: AsyncSession, user_id: int) -> int:
-        account_stmt = select(Account).where(Account.user_id == user_id)
-        account_result = await db.execute(account_stmt)
-        account = account_result.scalar_one_or_none()
-        if not account:
-            return 0
 
-        margin_used = Decimal(account.margin_used)
-        if margin_used <= 0:
-            return 0
-
-        margin_ratio = (Decimal(account.balance) - margin_used) / margin_used
-        if margin_ratio >= Decimal(str(settings.liquidation_threshold)):
-            return 0
-
-        positions_stmt = select(Position).where(
-            Position.user_id == user_id,
-            Position.liquidated.is_(False),
-        )
-        positions_result = await db.execute(positions_stmt)
-        positions = positions_result.scalars().all()
-
-        if not positions:
-            return 0
-
-        liquidated_count = 0
-        for position in positions:
-            position.liquidated = True
-            account.margin_used = max(Decimal(account.margin_used) - Decimal(position.margin), Decimal("0"))
-            liquidated_count += 1
-
-        if liquidated_count:
-            increment_liquidation_events(liquidated_count)
-
-        return liquidated_count

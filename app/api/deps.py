@@ -11,11 +11,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-def get_api_key(request: Request) -> str:
-    api_key = getattr(request.state, "api_key", None)
-    if not api_key:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing API key")
-    return api_key
+def get_user_id(request: Request) -> int:
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing user ID")
+    return user_id
 
 
 def get_db_dep(db: AsyncSession = Depends(get_db)) -> AsyncSession:

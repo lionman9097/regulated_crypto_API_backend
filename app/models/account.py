@@ -12,7 +12,7 @@ class Account(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False, index=True)
-    balance: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, default=Decimal("100000.0"))
+    balance: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, default=Decimal("0"))
     margin_used: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, default=Decimal("0"))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -32,6 +32,7 @@ class Position(Base):
     notional: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, default=Decimal("0"))
     margin: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, default=Decimal("0"))
     liquidated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    margin_type: Mapped[str] = mapped_column(String(16), nullable=False, default="CROSSED")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     account = relationship("Account", back_populates="positions")

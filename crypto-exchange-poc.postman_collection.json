@@ -36,12 +36,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"api_key\": \"{{api_key}}\"\n}"
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/auth/token",
+              "raw": "{{base_url}}/auth/login",
               "host": ["{{base_url}}"],
-              "path": ["auth", "token"]
+              "path": ["auth", "login"]
             }
           },
           "event": [
@@ -381,12 +381,16 @@
       "value": "http://localhost:8000"
     },
     {
-      "key": "api_key",
-      "value": "local-dev-key"
+      "key": "username",
+      "value": "trader_1"
     },
     {
       "key": "access_token",
       "value": ""
+        },
+        {
+          "key": "password",
+          "value": "password123"
     },
     {
       "key": "expires_in",
