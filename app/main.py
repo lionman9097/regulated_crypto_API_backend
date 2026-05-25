@@ -1,4 +1,4 @@
-from contextlib import asynccontextmanager
+﻿from contextlib import asynccontextmanager
 from decimal import Decimal
 import asyncio
 from datetime import datetime, UTC
@@ -11,11 +11,20 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import selectinload
 
 from api.routes.account import router as account_router
+from api.routes.api_keys import router as api_keys_router
 from api.routes.auth import router as auth_router
+from audit.routes import router as audit_router
 from api.routes.kpi import router as kpi_router
 from api.routes.market import router as market_router
 from api.routes.order import router as order_router
+from api.routes.regulator import router as regulator_router
+from audit.model import AuditLog  # noqa: F401 â€” imported so Base.metadata includes the table
 from core.config import AsyncSessionLocal, Base, engine, settings
+from alerts.model import KpiAlert  # noqa: F401 -- imported so Base.metadata includes the table
+from alerts.routes import router as alerts_router
+from api_keys.model import ApiKey  # noqa: F401 -- imported so Base.metadata includes the table
+from kpi.alerting import alerting_service
+
 from kpi.aggregator import kpi_aggregator
 from middleware.auth import AuthMiddleware
 from middleware.logging import LoggingMiddleware
@@ -26,6 +35,7 @@ from realtime.ws_hub import ws_hub
 from services.binance_service import binance_service
 from services.market_service import market_service
 from services.market_stream import market_stream
+from services.kline_stream import kline_stream
 from services.user_data_stream import user_data_stream
 
 
@@ -35,12 +45,14 @@ async def seed_initial_data() -> None:
     async with AsyncSessionLocal() as session:
         # Ensure predictable demo users always exist with known passwords.
         default_users = [
-            ("trader_1", "password123"),
-            ("trader_2", "password456"),
-            ("trader_3", "password789"),
-            ("user_1", "password123"),
-            ("user_2", "password456"),
-            ("user_3", "password789"),
+            ("trader_1", "password123", "standard", "trader"),
+            ("trader_2", "password456", "standard", "trader"),
+            ("trader_3", "password789", "standard", "trader"),
+            ("user_1",   "password123", "standard", "trader"),
+            ("user_2",   "password456", "standard", "trader"),
+            ("user_3",   "password789", "standard", "trader"),
+            ("admin_1",  "adminpass1",  "standard", "admin"),
+            ("regulator_1", "regulatorpass1", "standard", "regulator"),
         ]
 
         users_result = await session.execute(
@@ -50,19 +62,21 @@ async def seed_initial_data() -> None:
 
         new_users: list[User] = []
         existing_users: list[User] = []
-        for username, password in default_users:
+        for username, password, tier, role in default_users:
             user = users_by_username.get(username)
             if user is None:
                 user = User(
                     username=username,
                     password_hash=hash_password(password),
-                    tier="standard",
+                    tier=tier,
+                    role=role,
                 )
                 session.add(user)
                 new_users.append(user)
             else:
                 user.password_hash = hash_password(password)
-                user.tier = "standard"
+                user.tier = tier
+                user.role = role
                 existing_users.append(user)
 
         await session.flush()
@@ -116,12 +130,17 @@ async def kpi_stream_publisher() -> None:
         async with AsyncSessionLocal() as session:
             trading_kpi = await kpi_aggregator.trading_kpi(session)
 
+        system_kpi = kpi_aggregator.system_kpi()
+        security_kpi = kpi_aggregator.security_kpi()
+
+        await alerting_service.check_thresholds(system_kpi, security_kpi, trading_kpi)
+
         await ws_hub.broadcast_kpi(
             {
                 "type": "kpi_snapshot",
                 "timestamp": datetime.now(UTC).isoformat(),
-                "system": kpi_aggregator.system_kpi(),
-                "security": kpi_aggregator.security_kpi(),
+                "system": system_kpi,
+                "security": security_kpi,
                 "trading": trading_kpi,
             }
         )
@@ -163,6 +182,14 @@ async def apply_schema_compat_migrations() -> None:
                 """
             )
         )
+        await conn.execute(
+            text(
+                """
+                ALTER TABLE IF EXISTS users
+                ADD COLUMN IF NOT EXISTS role VARCHAR(32) NOT NULL DEFAULT 'trader';
+                """
+            )
+        )
 
 
 @asynccontextmanager
@@ -178,6 +205,7 @@ async def lifespan(_: FastAPI):
     kpi_task = asyncio.create_task(kpi_stream_publisher())
     user_data_task = asyncio.create_task(user_data_stream.start())
     market_stream_task = asyncio.create_task(market_stream.start())
+    kline_stream_task = asyncio.create_task(kline_stream.start())
     try:
         yield
     finally:
@@ -185,10 +213,12 @@ async def lifespan(_: FastAPI):
         kpi_task.cancel()
         user_data_task.cancel()
         market_stream_task.cancel()
+        kline_stream_task.cancel()
         await user_data_stream.stop()
         await market_stream.stop()
+        await kline_stream.stop()
         await asyncio.gather(
-            market_task, kpi_task, user_data_task, market_stream_task,
+            market_task, kpi_task, user_data_task, market_stream_task, kline_stream_task,
             return_exceptions=True,
         )
 
@@ -218,6 +248,10 @@ app.include_router(account_router)
 app.include_router(market_router)
 app.include_router(kpi_router)
 app.include_router(auth_router)
+app.include_router(audit_router)
+app.include_router(alerts_router)
+app.include_router(regulator_router)
+app.include_router(api_keys_router)
 
 
 @app.get("/health")
@@ -228,3 +262,4 @@ async def health() -> dict:
 @app.get("/metrics")
 async def metrics() -> PlainTextResponse:
     return PlainTextResponse(generate_latest().decode("utf-8"), media_type=CONTENT_TYPE_LATEST)
+

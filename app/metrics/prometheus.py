@@ -37,6 +37,12 @@ liquidation_events_total = Counter(
     "Total liquidation events received from Binance",
 )
 
+compliance_alerts_total = Counter(
+    "compliance_alerts_total",
+    "Total compliance threshold alerts triggered",
+    ["alert_type", "severity"],
+)
+
 _START_TIME = time.time()
 _LOCK = Lock()
 
@@ -89,6 +95,10 @@ def increment_liquidation_event() -> None:
         _TOTAL_LIQUIDATIONS += 1
 
 
+def increment_compliance_alert(alert_type: str, severity: str) -> None:
+    compliance_alerts_total.labels(alert_type=alert_type, severity=severity).inc()
+
+
 def get_metrics_snapshot() -> dict:
     with _LOCK:
         avg_latency_ms = (_TOTAL_LATENCY_SECONDS / _TOTAL_LATENCY_COUNT * 1000) if _TOTAL_LATENCY_COUNT else 0.0
@@ -102,4 +112,5 @@ def get_metrics_snapshot() -> dict:
             "uptime_seconds": int(uptime_seconds),
             "auth_failures_total": _TOTAL_AUTH_FAILURES,
             "rate_limit_hits_total": _TOTAL_RATE_LIMIT_HITS,
+            "liquidations_total": _TOTAL_LIQUIDATIONS,
         }

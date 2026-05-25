@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from audit.service import emit
 from core.config import redis_client
 from models.account import Account, Position
 from models.order import Order
@@ -48,14 +49,29 @@ class OrderService:
 
         risk_result = await self.risk_engine.evaluate_order(
             account=account,
+            user=user,
             order_size=order_size,
             price=price,
+            side=payload.side,
             requested_leverage=payload.leverage,
             current_user_exposure=existing_user_exposure,
             current_global_exposure=existing_global_exposure,
         )
 
         if not risk_result["approved"]:
+            emit(
+                "RISK_CHECK_REJECTED",
+                actor_id=payload.user_id,
+                actor_username=user.username,
+                target_type="order",
+                event_data={
+                    "symbol": payload.symbol,
+                    "reason": risk_result["reason"],
+                    "requested_leverage": payload.leverage,
+                    "order_size": float(order_size),
+                },
+                severity="WARN",
+            )
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=risk_result["reason"])
 
         exchange_order_id: int | None = None
@@ -139,11 +155,34 @@ class OrderService:
         await db.commit()
         await db.refresh(order)
 
+        emit(
+            "RISK_CHECK_APPROVED",
+            actor_id=payload.user_id,
+            actor_username=user.username,
+            target_type="order",
+            target_id=str(order.id),
+            event_data={
+                "symbol": payload.symbol,
+                "tier": user.tier,
+                "leverage": risk_result["leverage"],
+                "max_leverage_for_tier": risk_result["max_leverage_for_tier"],
+                "required_margin": float(risk_result["required_margin"]),
+                "order_notional": float(risk_result["order_notional"]),
+                "liquidation_price": float(risk_result["liquidation_price"]),
+                "maintenance_margin_rate": risk_result["maintenance_margin_rate"],
+                "global_exposure_after": float(risk_result["global_exposure_after"]),
+            },
+        )
+
         return {
             "order": order,
             "required_margin": float(required_margin),
             "user_exposure_after": float(risk_result["user_exposure_after"]),
             "global_exposure_after": float(risk_result["global_exposure_after"]),
+            "liquidation_price": float(risk_result["liquidation_price"]),
+            "maintenance_margin": float(risk_result["maintenance_margin"]),
+            "leverage": risk_result["leverage"],
+            "max_leverage_for_tier": risk_result["max_leverage_for_tier"],
         }
 
     async def close_position(

@@ -13,6 +13,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     tier: Mapped[str] = mapped_column(String(32), nullable=False, default="standard")
+    role: Mapped[str] = mapped_column(String(32), nullable=False, default="trader")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     account = relationship("Account", back_populates="user", uselist=False)

@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconn
 from core.security import decode_access_token
 from realtime.ws_hub import ws_hub
 from schemas.market import CandleData, MarketSnapshot, PriceResponse
+from services.kline_stream import VALID_INTERVALS
 from services.market_service import market_service
 
 
@@ -92,3 +93,64 @@ async def market_stream(websocket: WebSocket):
         ws_hub.disconnect_market(websocket)
     except Exception:
         ws_hub.disconnect_market(websocket)
+
+
+@router.websocket("/kline-stream")
+async def kline_stream_ws(websocket: WebSocket):
+    """
+    Stream real-time kline (candlestick) updates for a given symbol and interval.
+
+    Query params:
+      token    - JWT access token
+      symbol   - e.g. BTCUSDT
+      interval - one of 1m, 5m, 15m, 1h
+
+    On connect: sends a kline_snapshot with the last 100 closed candles.
+    Subsequent messages: individual kline frames (type=kline) including
+    in-progress candles; use `is_closed` to detect completed bars.
+    """
+    token = websocket.query_params.get("token", "")
+    symbol = websocket.query_params.get("symbol", "").upper()
+    interval = websocket.query_params.get("interval", "")
+
+    if not token:
+        await websocket.close(code=4401, reason="Missing token")
+        return
+
+    try:
+        decode_access_token(token)
+    except ValueError:
+        await websocket.close(code=4401, reason="Invalid token")
+        return
+
+    if not symbol:
+        await websocket.close(code=4400, reason="Missing symbol")
+        return
+
+    if interval not in VALID_INTERVALS:
+        await websocket.close(
+            code=4400,
+            reason=f"Unsupported interval. Valid: {sorted(VALID_INTERVALS)}",
+        )
+        return
+
+    await ws_hub.connect_kline(websocket, symbol, interval)
+
+    try:
+        # Send historical snapshot so the frontend can populate the chart immediately.
+        try:
+            candles = await market_service.get_candles(
+                symbol=symbol, interval=interval, limit=100
+            )
+            await websocket.send_json(
+                {"type": "kline_snapshot", "symbol": symbol, "interval": interval, "candles": candles}
+            )
+        except Exception:
+            pass  # Non-fatal — stream updates will still arrive
+
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_hub.disconnect_kline(websocket, symbol, interval)
+    except Exception:
+        ws_hub.disconnect_kline(websocket, symbol, interval)

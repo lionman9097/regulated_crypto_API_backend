@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     app_name: str = "crypto-exchange-poc-backend"
     environment: str = "dev"
 
-    database_url: str = ""
+    database_url: str
     redis_url: str = "redis://redis:6379/0"
 
     rate_limit_per_minute: int = 100
@@ -29,6 +29,14 @@ class Settings(BaseSettings):
 
     global_exposure_threshold: float = 10_000_000.0
     max_leverage: int = 20
+
+    # KPI alerting thresholds
+    alert_latency_ms_threshold: float = 500.0
+    alert_error_rate_threshold: float = 0.05          # 5 %
+    alert_auth_failure_per_cycle: int = 5             # auth failures per KPI check cycle
+    alert_rate_limit_per_cycle: int = 20              # rate-limit hits per KPI check cycle
+    alert_liquidation_per_cycle: int = 3              # liquidations per KPI check cycle
+    alert_exposure_pct_threshold: float = 80.0        # % of global_exposure_threshold
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 

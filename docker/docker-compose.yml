@@ -20,31 +20,10 @@ services:
       GLOBAL_EXPOSURE_THRESHOLD: 10000000
       MAX_LEVERAGE: 20
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     ports:
       - "8000:8000"
-
-  postgres:
-    image: postgres:16
-    container_name: crypto-poc-postgres
-    env_file:
-      - ../.env
-    environment:
-      POSTGRES_DB: crypto_poc
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d crypto_poc"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:7
@@ -69,5 +48,4 @@ services:
     depends_on:
       - backend
 
-volumes:
-  postgres_data:
+volumes: {}

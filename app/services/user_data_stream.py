@@ -22,6 +22,7 @@ from decimal import Decimal
 
 import websockets
 
+from audit.service import emit
 from core.config import AsyncSessionLocal, settings
 from metrics.prometheus import increment_liquidation_event
 from models.account import Account, Position
@@ -240,6 +241,20 @@ class UserDataStreamService:
             await db.commit()
             logger.info("Marked %d position(s) liquidated for symbol=%s", len(positions), symbol)
             increment_liquidation_event()
+
+            for position in positions:
+                emit(
+                    "POSITION_LIQUIDATED",
+                    target_type="position",
+                    target_id=str(position.id),
+                    event_data={
+                        "symbol": symbol,
+                        "user_id": position.user_id,
+                        "quantity": str(position.quantity),
+                        "notional": str(position.notional),
+                    },
+                    severity="CRITICAL",
+                )
 
 
 user_data_stream = UserDataStreamService()

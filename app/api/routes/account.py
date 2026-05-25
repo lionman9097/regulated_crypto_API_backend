@@ -1,9 +1,10 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from audit.service import emit
 from core.security import decode_access_token
 from realtime.ws_hub import ws_hub
 from schemas.account import (
@@ -91,7 +92,8 @@ async def get_margin(user_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{user_id}/leverage", response_model=LeverageResponse)
-async def set_leverage(user_id: int, payload: LeverageUpdate):
+async def set_leverage(request: Request, user_id: int, payload: LeverageUpdate):
+    ip = request.client.host if request.client else None
     if not binance_service.has_credentials:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -101,6 +103,14 @@ async def set_leverage(user_id: int, payload: LeverageUpdate):
         result = await binance_service.change_leverage(
             symbol=payload.symbol.upper(),
             leverage=payload.leverage,
+        )
+        emit(
+            "ACCOUNT_LEVERAGE_CHANGED",
+            actor_id=user_id,
+            target_type="account",
+            target_id=str(user_id),
+            ip_address=ip,
+            event_data={"symbol": payload.symbol.upper(), "leverage": payload.leverage},
         )
         return LeverageResponse(
             symbol=result["symbol"],
@@ -113,8 +123,9 @@ async def set_leverage(user_id: int, payload: LeverageUpdate):
 
 @router.post("/{user_id}/margin-type", status_code=status.HTTP_200_OK)
 async def set_margin_type(
-    user_id: int, payload: MarginTypeUpdate, db: AsyncSession = Depends(get_db)
+    request: Request, user_id: int, payload: MarginTypeUpdate, db: AsyncSession = Depends(get_db)
 ):
+    ip = request.client.host if request.client else None
     if not binance_service.has_credentials:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -134,6 +145,15 @@ async def set_margin_type(
         if pos.symbol == payload.symbol.upper() and not pos.liquidated:
             pos.margin_type = payload.margin_type
     await db.commit()
+
+    emit(
+        "ACCOUNT_MARGIN_TYPE_CHANGED",
+        actor_id=user_id,
+        target_type="account",
+        target_id=str(user_id),
+        ip_address=ip,
+        event_data={"symbol": payload.symbol.upper(), "margin_type": payload.margin_type},
+    )
 
     return {"detail": f"Margin type for {payload.symbol.upper()} set to {payload.margin_type}"}
 

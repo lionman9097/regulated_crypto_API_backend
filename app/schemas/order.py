@@ -38,6 +38,10 @@ class OrderExecutionResult(BaseModel):
     required_margin: float
     user_exposure_after: float
     global_exposure_after: float
+    liquidation_price: float
+    maintenance_margin: float
+    leverage: int
+    max_leverage_for_tier: int
 
 
 class OrderCancelResponse(BaseModel):
