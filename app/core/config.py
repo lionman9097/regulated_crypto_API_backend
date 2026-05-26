@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     alert_liquidation_per_cycle: int = 3              # liquidations per KPI check cycle
     alert_exposure_pct_threshold: float = 80.0        # % of global_exposure_threshold
 
+    # Separate key used to HMAC-sign regulatory report payloads.
+    # Should differ from jwt_secret_key in production deployments.
+    report_signature_key: str = "change-me-report-sig-key"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
 

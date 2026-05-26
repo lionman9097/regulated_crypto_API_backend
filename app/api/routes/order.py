@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps import get_db
+from api.deps import get_db, require_scopes
 from audit.service import emit
 from schemas.order import (
     ClosePositionResponse,
@@ -31,19 +31,19 @@ def _to_order_response(order) -> OrderResponse:
     )
 
 
-@router.get("/history", response_model=list[OrderResponse])
+@router.get("/history", response_model=list[OrderResponse], dependencies=[require_scopes("read:orders")])
 async def get_order_history(user_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     orders = await order_service.get_order_history(db, user_id)
     return [_to_order_response(o) for o in orders]
 
 
-@router.get("", response_model=list[OrderResponse])
+@router.get("", response_model=list[OrderResponse], dependencies=[require_scopes("read:orders")])
 async def list_open_orders(user_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     orders = await order_service.get_open_orders(db, user_id)
     return [_to_order_response(o) for o in orders]
 
 
-@router.post("", response_model=OrderExecutionResult)
+@router.post("", response_model=OrderExecutionResult, dependencies=[require_scopes("write:orders")])
 async def create_order(request: Request, payload: OrderCreate, db: AsyncSession = Depends(get_db)):
     ip = request.client.host if request.client else None
     result = await order_service.create_order(db, payload)
@@ -77,7 +77,7 @@ async def create_order(request: Request, payload: OrderCreate, db: AsyncSession 
     }
 
 
-@router.post("/{order_id}/cancel", response_model=OrderCancelResponse)
+@router.post("/{order_id}/cancel", response_model=OrderCancelResponse, dependencies=[require_scopes("write:orders")])
 async def cancel_order(request: Request, order_id: int, user_id: int, db: AsyncSession = Depends(get_db)):
     ip = request.client.host if request.client else None
     order = await order_service.cancel_order(db, order_id=order_id, user_id=user_id)
@@ -98,7 +98,7 @@ async def cancel_order(request: Request, order_id: int, user_id: int, db: AsyncS
     }
 
 
-@router.post("/close/{symbol}", response_model=ClosePositionResponse)
+@router.post("/close/{symbol}", response_model=ClosePositionResponse, dependencies=[require_scopes("write:orders")])
 async def close_position(request: Request, symbol: str, user_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     ip = request.client.host if request.client else None
     result = await order_service.close_position(db, user_id=user_id, symbol=symbol)

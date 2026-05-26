@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from core.config import settings
+from risk_engine.volatility import volatility_monitor
 
 # Notional brackets: list of (max_notional_inclusive, {tier: max_leverage})
 # Evaluated top-to-bottom; the last entry (Infinity) is the catch-all.
@@ -19,18 +20,31 @@ _TIER_CAPS: dict[str, int] = {
 }
 
 
-def get_max_leverage(tier: str = "standard", notional: Decimal = Decimal("0")) -> int:
+def get_max_leverage(
+    tier: str = "standard",
+    notional: Decimal = Decimal("0"),
+    symbol: str = "",
+) -> int:
     """Return the max allowed leverage for *tier* at the given position *notional*.
 
-    Two constraints are applied:
-    1. Per-tier global cap capped by ``settings.max_leverage``.
-    2. Notional-bracket step-down: larger positions get lower ceiling.
+    Three constraints are applied in order:
+    1. Per-tier global cap, bounded by ``settings.max_leverage``.
+    2. Notional-bracket step-down: larger positions get a lower ceiling.
+    3. Volatility modifier: reduces the ceiling when the 1h candle range
+       exceeds defined thresholds (sourced from the live kline stream).
     """
     tier_key = tier.lower() if tier.lower() in _TIER_CAPS else "standard"
     tier_cap = min(_TIER_CAPS[tier_key], max(1, int(settings.max_leverage)))
 
+    base_leverage: int = 1
     for bracket_ceiling, tier_map in _LEVERAGE_BRACKETS:
         if notional <= bracket_ceiling:
-            return min(tier_map.get(tier_key, 1), tier_cap)
+            base_leverage = min(tier_map.get(tier_key, 1), tier_cap)
+            break
 
-    return 1
+    if symbol:
+        modifier = volatility_monitor.get_modifier(symbol)
+        adjusted = int(Decimal(str(base_leverage)) * modifier)
+        return max(1, adjusted)
+
+    return base_leverage

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db, require_roles
 from audit.service import emit
-from core.security import decode_access_token
+from core.security import decode_access_token, sign_payload
 from realtime.ws_hub import ws_hub
 from services.regulator_service import regulator_service
 
@@ -27,7 +27,9 @@ async def get_overview(
         ip_address=request.client.host if request.client else None,
         event_data={"endpoint": "/regulator/overview"},
     )
-    return await regulator_service.get_overview(db)
+    result = await regulator_service.get_overview(db)
+    result["signature"] = sign_payload(result)
+    return result
 
 
 @router.get("/positions", dependencies=_RBAC)
@@ -85,7 +87,10 @@ async def get_exposure_breakdown(
         ip_address=request.client.host if request.client else None,
         event_data={"endpoint": "/regulator/exposure"},
     )
-    return await regulator_service.get_exposure_breakdown(db)
+    breakdown = await regulator_service.get_exposure_breakdown(db)
+    result = {"exposure": breakdown, "snapshot_at": datetime.now(UTC).isoformat()}
+    result["signature"] = sign_payload(result)
+    return result
 
 
 @router.get("/liquidations", dependencies=_RBAC)
@@ -154,6 +159,29 @@ async def list_users(
         }
         for u in users
     ]
+
+
+@router.get("/snapshot", dependencies=_RBAC)
+async def get_ledger_snapshot(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Point-in-time snapshot of all live positions, recent trades, and the
+    last 50 audit-log entries, signed with HMAC-SHA256.
+
+    Intended for regulatory audits and off-system archiving.  The signature
+    field allows the recipient to verify the payload has not been tampered with.
+    """
+    emit(
+        "REGULATOR_ACCESS",
+        actor_id=getattr(request.state, "user_id", None),
+        actor_username=getattr(request.state, "jwt_payload", {}).get("username"),
+        ip_address=request.client.host if request.client else None,
+        event_data={"endpoint": "/regulator/snapshot"},
+    )
+    snapshot = await regulator_service.get_ledger_snapshot(db)
+    snapshot["signature"] = sign_payload(snapshot)
+    return snapshot
 
 
 @router.websocket("/stream")

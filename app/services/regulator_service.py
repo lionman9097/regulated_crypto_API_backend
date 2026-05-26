@@ -5,8 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from alerts.model import KpiAlert
+from audit.model import AuditLog
 from models.account import Account, Position
 from models.order import Order
+from models.trade import Trade
 from models.user import User
 
 
@@ -129,6 +131,73 @@ class RegulatorService:
             stmt = stmt.where(User.role == role)
         result = await db.execute(stmt)
         return list(result.scalars().all())
+
+
+    async def get_ledger_snapshot(self, db: AsyncSession) -> dict:
+        """Return an immutable point-in-time snapshot of all live positions,
+        recent trades, and the last 50 audit-log entries.
+
+        The caller should attach an HMAC signature before returning to clients.
+        """
+        snapshot_at = datetime.now(UTC).isoformat()
+
+        positions_result = await db.execute(
+            select(Position)
+            .where(Position.liquidated == False)  # noqa: E712
+            .order_by(Position.updated_at.desc())
+        )
+        positions = [
+            {
+                "id": p.id,
+                "user_id": p.user_id,
+                "symbol": p.symbol,
+                "quantity": str(p.quantity),
+                "entry_price": str(p.entry_price),
+                "notional": str(p.notional),
+                "margin": str(p.margin),
+                "margin_type": p.margin_type,
+            }
+            for p in positions_result.scalars().all()
+        ]
+
+        trades_result = await db.execute(
+            select(Trade).order_by(Trade.created_at.desc()).limit(100)
+        )
+        recent_trades = [
+            {
+                "id": t.id,
+                "user_id": t.user_id,
+                "symbol": t.symbol,
+                "side": t.side,
+                "size": str(t.size),
+                "price": str(t.price),
+                "notional": str(t.notional),
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+            }
+            for t in trades_result.scalars().all()
+        ]
+
+        audit_result = await db.execute(
+            select(AuditLog).order_by(AuditLog.id.desc()).limit(50)
+        )
+        audit_tail = [
+            {
+                "id": a.id,
+                "event_type": a.event_type,
+                "actor_id": a.actor_id,
+                "severity": a.severity,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+                "row_hash": a.row_hash,
+            }
+            for a in audit_result.scalars().all()
+        ]
+
+        return {
+            "snapshot_at": snapshot_at,
+            "live_positions": positions,
+            "recent_trades": recent_trades,
+            "audit_tail": audit_tail,
+        }
 
 
 regulator_service = RegulatorService()

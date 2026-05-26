@@ -3,7 +3,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps import get_db
+from api.deps import get_db, require_scopes
 from audit.service import emit
 from core.security import decode_access_token
 from realtime.ws_hub import ws_hub
@@ -22,7 +22,7 @@ from services.binance_service import binance_service
 router = APIRouter(prefix="/account", tags=["account"])
 
 
-@router.get("/{user_id}", response_model=AccountSummary)
+@router.get("/{user_id}", response_model=AccountSummary, dependencies=[require_scopes("read:account")])
 async def get_account_summary(user_id: int, db: AsyncSession = Depends(get_db)):
     account = await account_service.sync_balance_from_exchange(db, user_id)
     if not account:
@@ -54,7 +54,7 @@ async def get_account_summary(user_id: int, db: AsyncSession = Depends(get_db)):
     }
 
 
-@router.get("/{user_id}/positions", response_model=list[PositionView])
+@router.get("/{user_id}/positions", response_model=list[PositionView], dependencies=[require_scopes("read:account")])
 async def get_positions(user_id: int, db: AsyncSession = Depends(get_db)):
     account = await account_service.get_account(db, user_id)
     if not account:
@@ -76,7 +76,7 @@ async def get_positions(user_id: int, db: AsyncSession = Depends(get_db)):
     ]
 
 
-@router.get("/{user_id}/margin", response_model=MarginView)
+@router.get("/{user_id}/margin", response_model=MarginView, dependencies=[require_scopes("read:account")])
 async def get_margin(user_id: int, db: AsyncSession = Depends(get_db)):
     account = await account_service.sync_balance_from_exchange(db, user_id)
     if not account:
@@ -91,7 +91,7 @@ async def get_margin(user_id: int, db: AsyncSession = Depends(get_db)):
     }
 
 
-@router.post("/{user_id}/leverage", response_model=LeverageResponse)
+@router.post("/{user_id}/leverage", response_model=LeverageResponse, dependencies=[require_scopes("write:account")])
 async def set_leverage(request: Request, user_id: int, payload: LeverageUpdate):
     ip = request.client.host if request.client else None
     if not binance_service.has_credentials:
@@ -121,7 +121,7 @@ async def set_leverage(request: Request, user_id: int, payload: LeverageUpdate):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
-@router.post("/{user_id}/margin-type", status_code=status.HTTP_200_OK)
+@router.post("/{user_id}/margin-type", status_code=status.HTTP_200_OK, dependencies=[require_scopes("write:account")])
 async def set_margin_type(
     request: Request, user_id: int, payload: MarginTypeUpdate, db: AsyncSession = Depends(get_db)
 ):

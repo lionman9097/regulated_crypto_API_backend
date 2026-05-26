@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_db, require_roles
 from audit.model import AuditLog
 from audit.schemas import AuditLogEntry
+from audit.service import _compute_row_hash
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -45,3 +46,43 @@ async def get_audit_log(log_id: int, db: AsyncSession = Depends(get_db)) -> Audi
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audit log not found")
     return entry
+
+
+@router.get("/verify-chain", dependencies=_RBAC)
+async def verify_audit_chain(
+    limit: int = Query(default=500, ge=1, le=5000, description="Max rows to verify (oldest-first)"),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Walk the audit-log hash chain and verify integrity.
+
+    Returns ``{\"integrity\": \"OK\", \"checked\": N}`` when all hashes match,
+    or ``{\"integrity\": \"BROKEN\", \"broken_at_id\": id, \"checked\": N}``
+    at the first mismatch.  Rows with a null ``row_hash`` (legacy rows inserted
+    before hash-chaining was enabled) are counted but not verified.
+    """
+    rows_result = await db.execute(
+        select(AuditLog)
+        .order_by(AuditLog.id.asc())
+        .limit(limit)
+    )
+    rows = rows_result.scalars().all()
+
+    checked = 0
+    for row in rows:
+        if row.row_hash is None:
+            # Legacy row — skip hash verification but continue the walk.
+            checked += 1
+            continue
+
+        expected = _compute_row_hash(
+            row.event_type,
+            row.actor_id,
+            row.created_at,
+            row.event_data,
+            row.prev_hash,
+        )
+        if expected != row.row_hash:
+            return {"integrity": "BROKEN", "broken_at_id": row.id, "checked": checked}
+        checked += 1
+
+    return {"integrity": "OK", "checked": checked}

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 
+from api.deps import require_scopes
 from core.security import decode_access_token
 from realtime.ws_hub import ws_hub
 from schemas.market import CandleData, MarketSnapshot, PriceResponse
@@ -10,7 +11,7 @@ from services.market_service import market_service
 router = APIRouter(prefix="/market", tags=["market"])
 
 
-@router.get("/candles/{symbol}", response_model=list[CandleData])
+@router.get("/candles/{symbol}", response_model=list[CandleData], dependencies=[require_scopes("read:market")])
 async def get_candles(
     symbol: str,
     interval: str = Query(...),
@@ -25,7 +26,7 @@ async def get_candles(
     return candles
 
 
-@router.get("/price/{symbol}", response_model=PriceResponse)
+@router.get("/price/{symbol}", response_model=PriceResponse, dependencies=[require_scopes("read:market")])
 async def get_price(symbol: str):
     try:
         price = await market_service.get_price(symbol.upper())
@@ -41,7 +42,7 @@ async def get_price(symbol: str):
     }
 
 
-@router.post("/tick", response_model=MarketSnapshot)
+@router.post("/tick", response_model=MarketSnapshot, dependencies=[require_scopes("read:market")])
 async def tick_market(symbol: str | None = Query(default=None)):
     updated = await market_service.tick(symbol.upper() if symbol else None)
     if symbol and not updated:

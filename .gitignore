@@ -7,4 +7,5 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+/thesis
 "@ | Out-File -FilePath .gitignore -Encoding utf8

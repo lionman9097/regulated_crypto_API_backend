@@ -14,5 +14,7 @@ class AuditLogEntry(BaseModel):
     event_data: dict | None
     severity: str
     created_at: datetime
+    prev_hash: str | None
+    row_hash: str | None
 
     model_config = {"from_attributes": True}

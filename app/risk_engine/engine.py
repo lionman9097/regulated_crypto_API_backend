@@ -30,6 +30,7 @@ class RiskEngine:
         requested_leverage: int | None,
         current_user_exposure: Decimal,
         current_global_exposure: Decimal,
+        symbol: str = "",
     ) -> dict:
         if order_size <= 0:
             return {"approved": False, "reason": "Order size must be positive"}
@@ -37,7 +38,7 @@ class RiskEngine:
         order_notional = order_size * price
         tier = (user.tier or "standard").lower()
 
-        max_leverage = get_max_leverage(tier=tier, notional=order_notional)
+        max_leverage = get_max_leverage(tier=tier, notional=order_notional, symbol=symbol)
         leverage = min(requested_leverage or max_leverage, max_leverage)
 
         margin_needed = required_margin(order_size, price, leverage)

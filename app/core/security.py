@@ -1,4 +1,7 @@
 from datetime import UTC, datetime, timedelta
+import hashlib
+import hmac
+import json
 
 import jwt
 from jwt import InvalidTokenError
@@ -38,3 +41,18 @@ def decode_access_token(token: str) -> dict:
         return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
     except InvalidTokenError as exc:
         raise ValueError("Invalid or expired token") from exc
+
+
+def sign_payload(data: dict) -> str:
+    """Return an HMAC-SHA256 hex digest of the JSON-serialised *data* dict.
+
+    Uses ``settings.report_signature_key`` so the signing key is independent
+    of the JWT secret.  The recipient can verify by recomputing the signature
+    over the same deterministic JSON (keys sorted, no extra whitespace).
+    """
+    body = json.dumps(data, sort_keys=True, default=str).encode()
+    return hmac.new(
+        settings.report_signature_key.encode(),
+        body,
+        hashlib.sha256,
+    ).hexdigest()

@@ -19,6 +19,7 @@ services:
       BINANCE_WS_BASE_URL: wss://demo-fstream.binance.com
       GLOBAL_EXPOSURE_THRESHOLD: 10000000
       MAX_LEVERAGE: 20
+      REPORT_SIGNATURE_KEY: change-me-report-sig-key
     depends_on:
       redis:
         condition: service_healthy

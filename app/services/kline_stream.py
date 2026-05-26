@@ -42,6 +42,7 @@ import websockets
 
 from core.config import settings
 from realtime.ws_hub import ws_hub
+from risk_engine.volatility import volatility_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,16 @@ class KlineStreamService:
                             "close_time": k["T"],
                             "is_closed": k["x"],
                         }
+                        # Feed closed 1h candles to the volatility monitor so
+                        # the risk engine can apply a real-time leverage modifier.
+                        if k["x"] and interval == "1h":
+                            volatility_monitor.update(
+                                symbol=symbol,
+                                interval=interval,
+                                open_=float(k["o"]),
+                                high=float(k["h"]),
+                                low=float(k["l"]),
+                            )
                         await ws_hub.broadcast_kline(symbol, interval, candle)
                 except Exception:
                     logger.exception("Error processing kline update")

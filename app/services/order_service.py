@@ -56,6 +56,7 @@ class OrderService:
             requested_leverage=payload.leverage,
             current_user_exposure=existing_user_exposure,
             current_global_exposure=existing_global_exposure,
+            symbol=payload.symbol,
         )
 
         if not risk_result["approved"]:

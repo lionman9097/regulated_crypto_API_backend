@@ -12,7 +12,12 @@ from models.trade import Trade
 class KPIAggregator:
     def system_kpi(self) -> dict:
         snapshot = kpi_collector.collect()
-        uptime = round((1.0 - snapshot["error_rate"]) * 100, 4)
+        elapsed = snapshot["elapsed_seconds"]
+        downtime = snapshot.get("downtime_seconds", 0.0)
+        if elapsed > 0:
+            uptime = round((elapsed - downtime) / elapsed * 100, 4)
+        else:
+            uptime = 100.0
         return {
             "latency_ms": snapshot["avg_latency_ms"],
             "error_rate": snapshot["error_rate"],

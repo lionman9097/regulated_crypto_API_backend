@@ -26,6 +26,10 @@ class AuditLog(Base):
         nullable=False,
         default=lambda: datetime.now(UTC),
     )
+    # Hash-chain fields — nullable for backward compatibility with rows created
+    # before this column was added.
+    prev_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    row_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
     __table_args__ = (
         Index("ix_audit_logs_event_type_created_at", "event_type", "created_at"),

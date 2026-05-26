@@ -52,6 +52,7 @@ _TOTAL_LATENCY_SECONDS = 0.0
 _TOTAL_LATENCY_COUNT = 0
 _TOTAL_AUTH_FAILURES = 0
 _TOTAL_RATE_LIMIT_HITS = 0
+_DOWNTIME_SECONDS: float = 0.0
 
 
 def record_api_request(method: str, endpoint: str, status_code: int, latency_seconds: float) -> None:
@@ -95,6 +96,13 @@ def increment_liquidation_event() -> None:
         _TOTAL_LIQUIDATIONS += 1
 
 
+def record_downtime(seconds: float) -> None:
+    """Record a period of unavailability (e.g. detected health-check failure)."""
+    global _DOWNTIME_SECONDS
+    with _LOCK:
+        _DOWNTIME_SECONDS += seconds
+
+
 def increment_compliance_alert(alert_type: str, severity: str) -> None:
     compliance_alerts_total.labels(alert_type=alert_type, severity=severity).inc()
 
@@ -103,13 +111,14 @@ def get_metrics_snapshot() -> dict:
     with _LOCK:
         avg_latency_ms = (_TOTAL_LATENCY_SECONDS / _TOTAL_LATENCY_COUNT * 1000) if _TOTAL_LATENCY_COUNT else 0.0
         error_rate = (_TOTAL_ERRORS / _TOTAL_REQUESTS) if _TOTAL_REQUESTS else 0.0
-        uptime_seconds = time.time() - _START_TIME
+        elapsed_seconds = time.time() - _START_TIME
         return {
             "requests_total": _TOTAL_REQUESTS,
             "errors_total": _TOTAL_ERRORS,
             "avg_latency_ms": round(avg_latency_ms, 2),
             "error_rate": round(error_rate, 4),
-            "uptime_seconds": int(uptime_seconds),
+            "elapsed_seconds": int(elapsed_seconds),
+            "downtime_seconds": _DOWNTIME_SECONDS,
             "auth_failures_total": _TOTAL_AUTH_FAILURES,
             "rate_limit_hits_total": _TOTAL_RATE_LIMIT_HITS,
             "liquidations_total": _TOTAL_LIQUIDATIONS,
