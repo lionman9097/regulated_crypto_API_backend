@@ -144,11 +144,11 @@ class AlertingService:
                 existing = await session.execute(
                     select(KpiAlert).where(
                         KpiAlert.alert_type == alert_type,
-                        KpiAlert.status.in_(["OPEN", "ACKNOWLEDGED"]),
+                        KpiAlert.status == "OPEN",
                     )
                 )
                 if existing.scalar_one_or_none() is not None:
-                    return  # already active — deduplicate
+                    return  # already has an open alert — deduplicate
 
                 alert = KpiAlert(
                     alert_type=alert_type,

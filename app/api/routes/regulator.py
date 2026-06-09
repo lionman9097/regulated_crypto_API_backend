@@ -78,7 +78,7 @@ async def list_all_positions(
 async def get_exposure_breakdown(
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> list[dict]:
+) -> dict:
     """Per-symbol aggregate notional exposure across all live positions."""
     emit(
         "REGULATOR_ACCESS",

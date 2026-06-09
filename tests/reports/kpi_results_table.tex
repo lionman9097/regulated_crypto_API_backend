@@ -1,0 +1,30 @@
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\setlength{\tabcolsep}{6pt}
+\caption{KPI Compliance Summary}
+\label{tab:kpi_summary}
+\begin{tabular}{|c|p{0.30\linewidth}|p{0.22\linewidth}|c|c|}
+\hline
+\textbf{KPI} & \textbf{Name} & \textbf{Target} & \textbf{Tests} & \textbf{Result} \\
+\hline
+1 & API Uptime & $\geq$ 99.95\% & 4P/0F/0S & \textbf{PASS} \\
+\hline
+2 & API Error Rate & $<$ 0.1\% & 3P/0F/0S & \textbf{PASS} \\
+\hline
+3 & Market Data Latency & $<$ 200\,ms (p95) & 2P/0F/0S & \textbf{PASS} \\
+\hline
+4 & Order Processing Latency & $<$ 100\,ms (p95) & 1P/0F/0S & \textbf{PASS} \\
+\hline
+5 & Liquidation Events & $<$ 10\% of positions & 2P/0F/1S & \textit{SKIP} \\
+\hline
+6 & API Auth Failures & Continuously monitored & 3P/0F/0S & \textbf{PASS} \\
+\hline
+7 & Key Compromise MTTD & $<$ 5\,min (design target) & 1P/0F/1S & \textit{SKIP} \\
+\hline
+8 & Ledger Snapshot Integrity & 100\% & 6P/0F/0S & \textbf{PASS} \\
+\hline
+9 & Audit Log Completeness & 100\% & 6P/0F/0S & \textbf{PASS} \\
+\hline
+\end{tabular}
+\end{table}

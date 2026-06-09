@@ -190,6 +190,31 @@ async def apply_schema_compat_migrations() -> None:
                 """
             )
         )
+        await conn.execute(
+            text(
+                """
+                ALTER TABLE IF EXISTS audit_logs
+                ADD COLUMN IF NOT EXISTS prev_hash TEXT;
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                ALTER TABLE IF EXISTS audit_logs
+                ADD COLUMN IF NOT EXISTS row_hash TEXT;
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                CREATE INDEX IF NOT EXISTS ix_audit_logs_row_hash
+                ON audit_logs (row_hash)
+                WHERE row_hash IS NOT NULL;
+                """
+            )
+        )
 
 
 @asynccontextmanager

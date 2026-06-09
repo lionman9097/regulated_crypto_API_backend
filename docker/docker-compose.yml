@@ -8,7 +8,7 @@ services:
       - ../.env
     environment:
       REDIS_URL: redis://redis:6379/0
-      RATE_LIMIT_PER_MINUTE: 100
+      RATE_LIMIT_PER_MINUTE: 500
       CORS_ALLOW_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
       JWT_SECRET_KEY: change-me-poc-secret
       JWT_ALGORITHM: HS256

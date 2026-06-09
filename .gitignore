@@ -8,4 +8,5 @@ __pycache__/
 dist/
 build/
 /thesis
+/graphify-out
 "@ | Out-File -FilePath .gitignore -Encoding utf8

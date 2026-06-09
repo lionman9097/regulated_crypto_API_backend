@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-06-05T10:35:13.488559",
+  "total_tests": 52,
+  "passed": 50,
+  "failed": 0,
+  "skipped": 2,
+  "kpi_rows": [
+    {
+      "kpi_n": 1,
+      "kpi_name": "API Uptime",
+      "target": "$\\geq$ 99.95\\%",
+      "details": "4P/0F/0S",
+      "status_raw": "PASS"
+    },
+    {
+      "kpi_n": 2,
+      "kpi_name": "API Error Rate",
+      "target": "$<$ 0.1\\%",
+      "details": "3P/0F/0S",
+      "status_raw": "PASS"
+    },
+    {
+      "kpi_n": 3,
+      "kpi_name": "Market Data Latency",
+      "target": "$<$ 200\\,ms (p95)",
+      "details": "2P/0F/0S",
+      "status_raw": "PASS"
+    },
+    {
+      "kpi_n": 4,
+      "kpi_name": "Order Processing Latency",
+      "target": "$<$ 100\\,ms (p95)",
+      "details": "1P/0F/0S",
+      "status_raw": "PASS"
+    },
+    {
+      "kpi_n": 5,
+      "kpi_name": "Liquidation Events",
+      "target": "$<$ 10\\% of positions",
+      "details": "2P/0F/1S",
+      "status_raw": "SKIP"
+    },
+    {
+      "kpi_n": 6,
+      "kpi_name": "API Auth Failures",
+      "target": "Continuously monitored",
+      "details": "3P/0F/0S",
+      "status_raw": "PASS"
+    },
+    {
+      "kpi_n": 7,
+      "kpi_name": "Key Compromise MTTD",
+      "target": "$<$ 5\\,min (design target)",
+      "details": "1P/0F/1S",
+      "status_raw": "SKIP"
+    },
+    {
+      "kpi_n": 8,
+      "kpi_name": "Ledger Snapshot Integrity",
+      "target": "100\\%",
+      "details": "6P/0F/0S",
+      "status_raw": "PASS"
+    },
+    {
+      "kpi_n": 9,
+      "kpi_name": "Audit Log Completeness",
+      "target": "100\\%",
+      "details": "6P/0F/0S",
+      "status_raw": "PASS"
+    }
+  ]
+}

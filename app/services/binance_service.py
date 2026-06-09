@@ -14,7 +14,9 @@ _SERVER_TIME_OFFSET_MS: int = 0
 
 
 def _adjusted_timestamp() -> int:
-    return int(_time_module.time() * 1000) + _SERVER_TIME_OFFSET_MS
+    # Subtract a 2.5-second safety margin so clock drift never puts us ahead
+    # of Binance server time (exchanges accept timestamps within ~5s recvWindow).
+    return int(_time_module.time() * 1000) + _SERVER_TIME_OFFSET_MS - 2500
 
 
 class _TimeCorrectedClient(UMFutures):
