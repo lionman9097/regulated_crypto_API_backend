@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
 
     rate_limit_per_minute: int = 100
-    cors_allow_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_allow_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://172.10.10.227:3988"
     jwt_secret_key: str = "change-me-poc-secret"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60

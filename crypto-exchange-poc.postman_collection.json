@@ -1,38 +1,38 @@
 {
   "info": {
-    "name": "Crypto Exchange POC - Full Smoke Tests",
-    "description": "End-to-end Postman collection for JWT auth, Binance-testnet-backed market/order flow, account, KPI, metrics, and rate-limit checks.",
+    "name": "Crypto Exchange POC - API Collection",
+    "description": "Postman collection covering all 32 REST endpoints: auth, market, orders, account, KPI, metrics, rate-limit, API keys, audit, regulator, and alerts.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
       "name": "00 - Health",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/health",
-          "host": ["{{base_url}}"],
-          "path": ["health"]
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
         }
-      },
-      "response": []
+      ]
     },
     {
       "name": "01 - Auth",
       "item": [
         {
-          "name": "Issue JWT Token",
+          "name": "POST /auth/login — Issue JWT",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
@@ -68,11 +68,9 @@
           "response": []
         },
         {
-          "name": "KPI System Without Token (Expect 401)",
+          "name": "GET /kpi/system — No Token (Expect 401)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
@@ -102,14 +100,11 @@
       "name": "02 - Market",
       "item": [
         {
-          "name": "Get BTCUSDT Price",
+          "name": "GET /market/price/{symbol}",
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/market/price/{{symbol}}",
@@ -135,14 +130,47 @@
           "response": []
         },
         {
-          "name": "Tick Market",
+          "name": "GET /market/candles/{symbol}",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/market/candles/{{symbol}}?interval=1h&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["market", "candles", "{{symbol}}"],
+              "query": [
+                { "key": "interval", "value": "1h" },
+                { "key": "limit", "value": "5" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns candle array', function () {",
+                  "  var data = pm.response.json();",
+                  "  pm.expect(data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /market/tick",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/market/tick",
@@ -158,18 +186,12 @@
       "name": "03 - Orders",
       "item": [
         {
-          "name": "Create Buy Order",
+          "name": "POST /orders — Create Order",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -204,27 +226,120 @@
           "response": []
         },
         {
-          "name": "Cancel Order (if open)",
+          "name": "GET /orders — List Open Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders?user_id={{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["orders"],
+              "query": [
+                { "key": "user_id", "value": "{{user_id}}" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns array', function () {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /orders/history — Order History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/history?user_id={{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "history"],
+              "query": [
+                { "key": "user_id", "value": "{{user_id}}" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns array', function () {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /orders/{order_id}/cancel",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/orders/{{order_id}}/cancel?user_id={{user_id}}",
               "host": ["{{base_url}}"],
               "path": ["orders", "{{order_id}}", "cancel"],
               "query": [
-                {
-                  "key": "user_id",
-                  "value": "{{user_id}}"
-                }
+                { "key": "user_id", "value": "{{user_id}}" }
               ]
             }
           },
+          "response": []
+        },
+        {
+          "name": "POST /orders/close/{symbol} — Close Position",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/close/{{symbol}}?user_id={{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "close", "{{symbol}}"],
+              "query": [
+                { "key": "user_id", "value": "{{user_id}}" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 400', function () {",
+                  "  pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "response": []
         }
       ]
@@ -233,14 +348,11 @@
       "name": "04 - Account",
       "item": [
         {
-          "name": "Get Account Summary",
+          "name": "GET /account/{user_id} — Summary",
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/account/{{user_id}}",
@@ -248,6 +360,144 @@
               "path": ["account", "{{user_id}}"]
             }
           },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /account/{user_id}/positions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/account/{{user_id}}/positions",
+              "host": ["{{base_url}}"],
+              "path": ["account", "{{user_id}}", "positions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns array', function () {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /account/{user_id}/margin",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/account/{{user_id}}/margin",
+              "host": ["{{base_url}}"],
+              "path": ["account", "{{user_id}}", "margin"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /account/{user_id}/leverage — Update Leverage",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"{{symbol}}\",\n  \"leverage\": {{leverage}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/account/{{user_id}}/leverage",
+              "host": ["{{base_url}}"],
+              "path": ["account", "{{user_id}}", "leverage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /account/{user_id}/margin-type",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"{{symbol}}\",\n  \"margin_type\": \"CROSSED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/account/{{user_id}}/margin-type",
+              "host": ["{{base_url}}"],
+              "path": ["account", "{{user_id}}", "margin-type"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "response": []
         }
       ]
@@ -256,14 +506,11 @@
       "name": "05 - KPI",
       "item": [
         {
-          "name": "KPI System",
+          "name": "GET /kpi/system",
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/kpi/system",
@@ -271,17 +518,33 @@
               "path": ["kpi", "system"]
             }
           },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test('Has latency_ms, error_rate, uptime', function () {",
+                  "  pm.expect(data).to.have.property('latency_ms');",
+                  "  pm.expect(data).to.have.property('error_rate');",
+                  "  pm.expect(data).to.have.property('uptime');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "response": []
         },
         {
-          "name": "KPI Trading",
+          "name": "GET /kpi/trading",
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/kpi/trading",
@@ -289,17 +552,27 @@
               "path": ["kpi", "trading"]
             }
           },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "response": []
         },
         {
-          "name": "KPI Security",
+          "name": "GET /kpi/security",
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/kpi/security",
@@ -307,78 +580,96 @@
               "path": ["kpi", "security"]
             }
           },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "response": []
         }
       ]
     },
     {
-      "name": "06 - Metrics",
-      "request": {
-        "auth": {
-          "type": "noauth"
-        },
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/metrics",
-          "host": ["{{base_url}}"],
-          "path": ["metrics"]
-        }
-      },
-      "event": [
+      "name": "06 - Metrics (No Auth)",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status is 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "pm.test('Contains expected metric', function () {",
-              "  pm.expect(pm.response.text()).to.include('api_requests_total');",
-              "});"
-            ]
-          }
+          "name": "GET /metrics",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["metrics"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Contains expected metric', function () {",
+                  "  pm.expect(pm.response.text()).to.include('api_requests_total');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
         }
-      ],
-      "response": []
+      ]
     },
     {
-      "name": "07 - Rate Limit Probe (Run in Collection Runner x120)",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{access_token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/kpi/system",
-          "host": ["{{base_url}}"],
-          "path": ["kpi", "system"]
-        }
-      },
-      "event": [
+      "name": "07 - Rate Limit Probe",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Response is 200 or 429', function () {",
-              "  pm.expect([200, 429]).to.include(pm.response.code);",
-              "});"
-            ]
-          }
+          "name": "Probe (expect 200 until bucket > 500/min)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/kpi/system",
+              "host": ["{{base_url}}"],
+              "path": ["kpi", "system"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Response is 200 or 429', function () {",
+                  "  pm.expect([200, 429]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
         }
-      ],
-      "response": []
+      ]
     },
     {
       "name": "08 - API Keys & Scope Enforcement",
       "item": [
         {
-          "name": "Create API Key (scopes: read:market)",
+          "name": "POST /api-keys — Create (scopes: read:market)",
           "request": {
             "method": "POST",
             "header": [
@@ -419,7 +710,7 @@
           "response": []
         },
         {
-          "name": "List API Keys",
+          "name": "GET /api-keys — List Keys",
           "request": {
             "method": "GET",
             "header": [
@@ -440,8 +731,12 @@
                   "pm.test('Status is 200', function () {",
                   "  pm.response.to.have.status(200);",
                   "});",
-                  "pm.test('Returns array', function () {",
-                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "pm.test('Returns array (no secrets exposed)', function () {",
+                  "  var data = pm.response.json();",
+                  "  pm.expect(data).to.be.an('array');",
+                  "  if (data.length > 0) {",
+                  "    pm.expect(data[0]).to.not.have.property('secret');",
+                  "  }",
                   "});"
                 ]
               }
@@ -450,7 +745,40 @@
           "response": []
         },
         {
-          "name": "Market Price with API Key (read:market — Expect 200)",
+          "name": "POST /api-keys/{key_id}/regenerate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api-keys/{{api_key_id_full}}/regenerate",
+              "host": ["{{base_url}}"],
+              "path": ["api-keys", "{{api_key_id_full}}", "regenerate"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test('Returns new secret', function () {",
+                  "  pm.expect(data.secret).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set('api_key_secret_full', data.secret);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /market/price — API Key (read:market → 200)",
           "request": {
             "method": "GET",
             "header": [
@@ -479,7 +807,7 @@
           "response": []
         },
         {
-          "name": "Create Order with Wrong Scope API Key (Expect 403)",
+          "name": "POST /orders — API Key w/o write:orders (Expect 403)",
           "request": {
             "method": "POST",
             "header": [
@@ -513,7 +841,7 @@
           "response": []
         },
         {
-          "name": "Create API Key (scopes: write:orders, read:orders)",
+          "name": "POST /api-keys — Create Full-Scope Key",
           "request": {
             "method": "POST",
             "header": [
@@ -522,7 +850,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"label\": \"postman-order-key\",\n  \"scopes\": [\"read:orders\", \"write:orders\", \"read:account\", \"write:account\", \"read:market\"]\n}"
+              "raw": "{\n  \"label\": \"postman-full-scope\",\n  \"scopes\": [\"read:orders\", \"write:orders\", \"read:account\", \"write:account\", \"read:market\"]\n}"
             },
             "url": {
               "raw": "{{base_url}}/api-keys",
@@ -549,7 +877,7 @@
           "response": []
         },
         {
-          "name": "Create Order with Full-Scope API Key (Expect 200 or 400)",
+          "name": "POST /orders — Full-Scope API Key (Expect 200 or 400)",
           "request": {
             "method": "POST",
             "header": [
@@ -583,7 +911,7 @@
           "response": []
         },
         {
-          "name": "Deactivate Read-Only API Key",
+          "name": "DELETE /api-keys/{key_id} — Deactivate",
           "request": {
             "method": "DELETE",
             "header": [
@@ -611,7 +939,7 @@
           "response": []
         },
         {
-          "name": "Market Price After Key Deactivated (Expect 401)",
+          "name": "GET /market/price — After Deactivation (Expect 401)",
           "request": {
             "method": "GET",
             "header": [
@@ -645,7 +973,7 @@
       "name": "09 - Audit Log",
       "item": [
         {
-          "name": "List Audit Logs",
+          "name": "GET /audit/logs",
           "request": {
             "method": "GET",
             "header": [
@@ -682,7 +1010,73 @@
           "response": []
         },
         {
-          "name": "Verify Audit Chain Integrity",
+          "name": "GET /audit/logs/{log_id} — Single Entry",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/audit/logs/1",
+              "host": ["{{base_url}}"],
+              "path": ["audit", "logs", "1"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 404', function () {",
+                  "  pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /audit/logs — Filter by event_type",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/audit/logs?event_type=ORDER_PLACED&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["audit", "logs"],
+              "query": [
+                { "key": "event_type", "value": "ORDER_PLACED" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('All entries match requested event_type', function () {",
+                  "  var data = pm.response.json();",
+                  "  data.forEach(function (entry) {",
+                  "    pm.expect(entry.event_type).to.equal('ORDER_PLACED');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /audit/verify-chain",
           "request": {
             "method": "GET",
             "header": [
@@ -713,52 +1107,14 @@
             }
           ],
           "response": []
-        },
-        {
-          "name": "List Audit Logs — Filter by Event Type",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{access_token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/audit/logs?event_type=API_KEY_CREATED&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["audit", "logs"],
-              "query": [
-                { "key": "event_type", "value": "API_KEY_CREATED" },
-                { "key": "limit", "value": "10" }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status is 200', function () {",
-                  "  pm.response.to.have.status(200);",
-                  "});",
-                  "pm.test('All entries match requested event_type', function () {",
-                  "  var data = pm.response.json();",
-                  "  data.forEach(function (entry) {",
-                  "    pm.expect(entry.event_type).to.equal('API_KEY_CREATED');",
-                  "  });",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "response": []
         }
       ]
     },
     {
-      "name": "10 - Regulator",
+      "name": "10 - Regulator (admin/regulator role)",
       "item": [
         {
-          "name": "Regulator Overview (signed)",
+          "name": "GET /regulator/overview (signed)",
           "request": {
             "method": "GET",
             "header": [
@@ -790,7 +1146,7 @@
           "response": []
         },
         {
-          "name": "Regulator Exposure (signed)",
+          "name": "GET /regulator/exposure (signed)",
           "request": {
             "method": "GET",
             "header": [
@@ -822,7 +1178,7 @@
           "response": []
         },
         {
-          "name": "Regulator Snapshot (signed, new endpoint)",
+          "name": "GET /regulator/snapshot (signed)",
           "request": {
             "method": "GET",
             "header": [
@@ -858,7 +1214,7 @@
           "response": []
         },
         {
-          "name": "Regulator Positions",
+          "name": "GET /regulator/positions",
           "request": {
             "method": "GET",
             "header": [
@@ -890,7 +1246,71 @@
           "response": []
         },
         {
-          "name": "Regulator — No Token (Expect 401)",
+          "name": "GET /regulator/liquidations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/regulator/liquidations?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["regulator", "liquidations"],
+              "query": [{ "key": "limit", "value": "50" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns array', function () {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /regulator/users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/regulator/users?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["regulator", "users"],
+              "query": [{ "key": "limit", "value": "50" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns array', function () {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /regulator/overview — No Token (Expect 401)",
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
@@ -917,68 +1337,116 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "11 - Alerts (admin/regulator role)",
+      "item": [
+        {
+          "name": "GET /alerts — List Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/alerts?limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["alerts"],
+              "query": [{ "key": "limit", "value": "20" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns array', function () {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /alerts/{alert_id} — Single Alert",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/alerts/1",
+              "host": ["{{base_url}}"],
+              "path": ["alerts", "1"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 404', function () {",
+                  "  pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /alerts/{alert_id}/acknowledge (admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/alerts/1/acknowledge",
+              "host": ["{{base_url}}"],
+              "path": ["alerts", "1", "acknowledge"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 404 or 403', function () {",
+                  "  pm.expect([200, 403, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8000"
-    },
-    {
-      "key": "username",
-      "value": "trader_1"
-    },
-    {
-      "key": "access_token",
-      "value": ""
-        },
-        {
-          "key": "password",
-          "value": "password123"
-    },
-    {
-      "key": "expires_in",
-      "value": ""
-    },
-    {
-      "key": "user_id",
-      "value": "1"
-    },
-    {
-      "key": "symbol",
-      "value": "BTCUSDT"
-    },
-    {
-      "key": "order_size",
-      "value": "0.001"
-    },
-    {
-      "key": "leverage",
-      "value": "5"
-    },
-    {
-      "key": "order_id",
-      "value": "1"
-    },
-    {
-      "key": "last_price",
-      "value": ""
-    },
-    {
-      "key": "api_key_id",
-      "value": ""
-    },
-    {
-      "key": "api_key_secret",
-      "value": ""
-    },
-    {
-      "key": "api_key_id_full",
-      "value": ""
-    },
-    {
-      "key": "api_key_secret_full",
-      "value": ""
-    }
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "username", "value": "trader_1" },
+    { "key": "password", "value": "password123" },
+    { "key": "access_token", "value": "" },
+    { "key": "expires_in", "value": "" },
+    { "key": "user_id", "value": "1" },
+    { "key": "symbol", "value": "BTCUSDT" },
+    { "key": "order_size", "value": "0.001" },
+    { "key": "leverage", "value": "5" },
+    { "key": "order_id", "value": "1" },
+    { "key": "last_price", "value": "" },
+    { "key": "api_key_id", "value": "" },
+    { "key": "api_key_secret", "value": "" },
+    { "key": "api_key_id_full", "value": "" },
+    { "key": "api_key_secret_full", "value": "" }
   ]
 }
