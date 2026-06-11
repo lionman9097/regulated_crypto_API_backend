@@ -36,12 +36,12 @@ standardDockerPipeline([
             BINANCE_API_SECRET: 'BINANCE_API_SECRET'
         ],
         explicitCreds: [
-            REDIS_URL: 'redis://172.10.10.227:6379/9',
             BINANCE_BASE_URL: 'https://demo-fapi.binance.com',
             BINANCE_WS_BASE_URL: 'wss://demo-fstream.binance.com',
             CORS_ALLOW_ORIGINS: 'http://localhost:3000,http://127.0.0.1:3000,http://172.10.10.227:3989'
         ],
         buildCreds: [
+            [id: 'regulated_crypto_API-backend-redis-url-prod', name: 'REDIS_URL'],
             [id: 'regulated_crypto_API-backend-database-url-prod', name: 'DATABASE_URL'],
             [id: 'regulated_crypto_API-backend-rate-limit-per-minute-prod', name: 'RATE_LIMIT_PER_MINUTE'],
             [id: 'regulated_crypto_API-backend-jwt-secret-key-prod', name: 'JWT_SECRET_KEY'],
