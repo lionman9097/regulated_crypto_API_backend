@@ -259,7 +259,13 @@ app = FastAPI(
 )
 
 cors_origins = [origin.strip() for origin in settings.cors_allow_origins.split(",") if origin.strip()]
+logger.info("RAW CORS_ALLOW_ORIGINS = %r", settings.cors_allow_origins)
 logger.info("CORS allow_origins = %s", cors_origins)
+# Ensure the deploy origin is always present regardless of env-var loading quirks
+_DEPLOY_ORIGIN = "http://172.10.10.227:3988"
+if _DEPLOY_ORIGIN not in cors_origins:
+    cors_origins.append(_DEPLOY_ORIGIN)
+    logger.info("CORS: forcibly added %s", _DEPLOY_ORIGIN)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins or ["http://localhost:3000"],
