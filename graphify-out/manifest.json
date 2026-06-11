@@ -105,9 +105,9 @@
     "semantic_hash": "5ebc9396cb1852b39970ccc821617e2d"
   },
   "app/core/config.py": {
-    "mtime": 1779693475.3476562,
-    "ast_hash": "ed2e01486fcf5b3d0bcff358e7a18adc",
-    "semantic_hash": "ed2e01486fcf5b3d0bcff358e7a18adc"
+    "mtime": 1781071399.0269775,
+    "ast_hash": "e84b002e66ad0a348f4868e478711486",
+    "semantic_hash": "e84b002e66ad0a348f4868e478711486"
   },
   "app/core/security.py": {
     "mtime": 1779693475.3476562,
@@ -235,9 +235,9 @@
     "semantic_hash": "d30419ce4e81dde49304036d02f5f154"
   },
   "app/services/binance_service.py": {
-    "mtime": 1779093600.2631657,
-    "ast_hash": "6fa2331071c65509ab089f42d9980dd0",
-    "semantic_hash": "6fa2331071c65509ab089f42d9980dd0"
+    "mtime": 1781073635.5016575,
+    "ast_hash": "1a5aecdfd3773a7d086e5516967ff25f",
+    "semantic_hash": "1a5aecdfd3773a7d086e5516967ff25f"
   },
   "app/services/kline_stream.py": {
     "mtime": 1779693475.3476562,
@@ -270,9 +270,9 @@
     "semantic_hash": "cb635bc06c5a3b3a13c188eeaf06038e"
   },
   "crypto-exchange-poc.postman_collection.json": {
-    "mtime": 1779776338.256971,
-    "ast_hash": "bb3f3d806c5365f259b03534eb105523",
-    "semantic_hash": "bb3f3d806c5365f259b03534eb105523"
+    "mtime": 1780987235.5591836,
+    "ast_hash": "38c8edf2f50bf32c8890440c088b965c",
+    "semantic_hash": "38c8edf2f50bf32c8890440c088b965c"
   },
   "tests/conftest.py": {
     "mtime": 1780564649.2549343,
@@ -280,9 +280,9 @@
     "semantic_hash": "35ef600e2a319039020a34eb01fe712a"
   },
   "tests/generate_kpi_report.py": {
-    "mtime": 1780555798.4022348,
-    "ast_hash": "a6bb8afc5055f8ecd4644ae1eaea03c2",
-    "semantic_hash": "a6bb8afc5055f8ecd4644ae1eaea03c2"
+    "mtime": 1781073635.58775,
+    "ast_hash": "6abffad3be9b00e345e18bd625f52781",
+    "semantic_hash": "6abffad3be9b00e345e18bd625f52781"
   },
   "tests/helpers.py": {
     "mtime": 1780555798.0853932,
@@ -290,19 +290,19 @@
     "semantic_hash": "cec66518ca8bf6cb0253e8f5aa59af9a"
   },
   "tests/seed_test_data.py": {
-    "mtime": 1780555798.0845537,
-    "ast_hash": "c50872d72ce43517590de4dd443a0b5e",
-    "semantic_hash": "c50872d72ce43517590de4dd443a0b5e"
+    "mtime": 1780643844.38085,
+    "ast_hash": "3cd8c6619ed77b66c42a4d0e30933072",
+    "semantic_hash": "3cd8c6619ed77b66c42a4d0e30933072"
   },
   "tests/test_auth_security.py": {
-    "mtime": 1780567346.6903148,
-    "ast_hash": "1bac02d1d5a47e5d35d1c3a1ee3730c3",
-    "semantic_hash": "1bac02d1d5a47e5d35d1c3a1ee3730c3"
+    "mtime": 1781073635.66408,
+    "ast_hash": "79f6d39ef8e91901fa5f97a5592bbdb2",
+    "semantic_hash": "79f6d39ef8e91901fa5f97a5592bbdb2"
   },
   "tests/test_kpi_audit_completeness.py": {
-    "mtime": 1780567346.6500006,
-    "ast_hash": "860aa170939d656f80f0301ba17a694a",
-    "semantic_hash": "860aa170939d656f80f0301ba17a694a"
+    "mtime": 1781073636.0468576,
+    "ast_hash": "0d57bc3a8340fa3af5df5c14c64ca32c",
+    "semantic_hash": "0d57bc3a8340fa3af5df5c14c64ca32c"
   },
   "tests/test_kpi_auth_failures.py": {
     "mtime": 1780555798.1784408,
@@ -315,9 +315,9 @@
     "semantic_hash": "0e7b0abd13943bedef1299435e910b19"
   },
   "tests/test_kpi_latency.py": {
-    "mtime": 1780567346.635614,
-    "ast_hash": "fbf950d15d7ab1642a964963e8ec5b21",
-    "semantic_hash": "fbf950d15d7ab1642a964963e8ec5b21"
+    "mtime": 1781073636.1312046,
+    "ast_hash": "3196c16ca2c10373adc92256be2d65de",
+    "semantic_hash": "3196c16ca2c10373adc92256be2d65de"
   },
   "tests/test_kpi_ledger.py": {
     "mtime": 1780563164.2806957,
@@ -330,9 +330,9 @@
     "semantic_hash": "da9a53e5fb2a235f34559e7283cef687"
   },
   "tests/test_kpi_mttd.py": {
-    "mtime": 1780567346.635614,
-    "ast_hash": "92e07b6c28441640f3ee9f34b1f16c71",
-    "semantic_hash": "92e07b6c28441640f3ee9f34b1f16c71"
+    "mtime": 1781073636.203039,
+    "ast_hash": "46ca08c178525e6a3810ea616962b019",
+    "semantic_hash": "46ca08c178525e6a3810ea616962b019"
   },
   "tests/test_kpi_uptime.py": {
     "mtime": 1780555798.0916855,
@@ -353,5 +353,35 @@
     "mtime": 1780556525.7448704,
     "ast_hash": "2597a9c0be0463fb0e4e6788f0d5a8a5",
     "semantic_hash": "2597a9c0be0463fb0e4e6788f0d5a8a5"
+  },
+  "tests/reports/kpi_results.json": {
+    "mtime": 1780655713.4895866,
+    "ast_hash": "3f9ce0fcd30968e29c1b3cd77b7751c0",
+    "semantic_hash": "3f9ce0fcd30968e29c1b3cd77b7751c0"
+  },
+  "tests/reports/results.json": {
+    "mtime": 1780655712.949313,
+    "ast_hash": "d588703727fcd9986fee279af9ebbbb4",
+    "semantic_hash": "d588703727fcd9986fee279af9ebbbb4"
+  },
+  "tests/test_zzz_rate_limit.py": {
+    "mtime": 1781073636.3892167,
+    "ast_hash": "071471afb00ae977ee44c5328cc33039",
+    "semantic_hash": "071471afb00ae977ee44c5328cc33039"
+  },
+  "AGENTS.md": {
+    "mtime": 1780641330.6380377,
+    "ast_hash": "752aa83aa64361ac32860f882dcff932",
+    "semantic_hash": "752aa83aa64361ac32860f882dcff932"
+  },
+  "README.md": {
+    "mtime": 1778409418.1098766,
+    "ast_hash": "124302ed957885b347f6e35e935a4753",
+    "semantic_hash": "124302ed957885b347f6e35e935a4753"
+  },
+  "requirements.txt": {
+    "mtime": 1779087306.4225361,
+    "ast_hash": "1a8e51bdec40682c5eeb2185c6982c34",
+    "semantic_hash": "1a8e51bdec40682c5eeb2185c6982c34"
   }
 }

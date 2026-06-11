@@ -1,9 +1,12 @@
 ﻿from contextlib import asynccontextmanager
 from decimal import Decimal
 import asyncio
+import logging
 from datetime import datetime, UTC
 
 from fastapi import FastAPI
+
+logger = logging.getLogger(__name__)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -256,6 +259,7 @@ app = FastAPI(
 )
 
 cors_origins = [origin.strip() for origin in settings.cors_allow_origins.split(",") if origin.strip()]
+logger.info("CORS allow_origins = %s", cors_origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins or ["http://localhost:3000"],
